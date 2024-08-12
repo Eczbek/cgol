@@ -7,14 +7,26 @@
 #include <thread>
 #include <vector>
 
-#include "../xieite/include/xieite/containers/initialize_multidimensional_array.hpp"
+#include "../xieite/include/xieite/containers/make_array.hpp"
 #include "../xieite/include/xieite/streams/color.hpp"
 #include "../xieite/include/xieite/streams/position.hpp"
 #include "../xieite/include/xieite/streams/standard_handle.hpp"
 
 inline constexpr std::size_t textureHeight = 8;
 inline constexpr std::size_t textureWidth = 8;
-inline constexpr auto textures = xieite::containers::initializeMultidimensionalArray<xieite::streams::Color<4>, 2, textureHeight, textureWidth>({
+
+struct Texture
+: std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight> {
+	constexpr Texture(const std::initializer_list<std::initializer_list<xieite::streams::Color<4>>> list) noexcept
+	: std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight>(([list]<std::size_t... i_>(std::index_sequence<i_...>) {
+		auto iterator = list.begin();
+		return std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight> {
+			(void(i_), xieite::containers::makeArray<xieite::streams::Color<4>, textureWidth>(*iterator++))...
+		};
+	})(std::make_index_sequence<textureHeight>())) {}
+};
+
+inline constexpr auto textures = xieite::containers::makeArray<Texture, 2>({
 	{
 		{ 0x636363FF, 0x636363FF, 0x636363FF, 0x707070FF, 0x7C7C7CFF, 0x707070FF, 0x707070FF, 0x636363FF },
 		{ 0x636363FF, 0x707070FF, 0x8C8C8CFF, 0x7C7C7CFF, 0x707070FF, 0x7C7C7CFF, 0x8C8C8CFF, 0x707070FF },
@@ -36,8 +48,6 @@ inline constexpr auto textures = xieite::containers::initializeMultidimensionalA
 		{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF }
 	}
 });
-
-using Texture = std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight>;
 
 int main() {
 	auto terminal = xieite::streams::StandardHandle(stdin, stdout);
