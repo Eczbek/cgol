@@ -4,52 +4,20 @@
 #include <cstdint>
 #include <cstdio>
 #include <print>
+#include <random>
 #include <thread>
 #include <vector>
 
-#include "../xieite/include/xieite/containers/make_array.hpp"
 #include "../xieite/include/xieite/streams/color.hpp"
 #include "../xieite/include/xieite/streams/position.hpp"
 #include "../xieite/include/xieite/streams/standard_handle.hpp"
 
-inline constexpr std::size_t textureHeight = 8;
-inline constexpr std::size_t textureWidth = 8;
-
-struct Texture
-: std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight> {
-	constexpr Texture(const std::initializer_list<std::initializer_list<xieite::streams::Color<4>>> list) noexcept
-	: std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight>(([list]<std::size_t... i_>(std::index_sequence<i_...>) {
-		auto iterator = list.begin();
-		return std::array<std::array<xieite::streams::Color<4>, textureWidth>, textureHeight> {
-			(void(i_), xieite::containers::makeArray<xieite::streams::Color<4>, textureWidth>(*iterator++))...
-		};
-	})(std::make_index_sequence<textureHeight>())) {}
-};
-
-inline constexpr auto textures = xieite::containers::makeArray<Texture, 2>({
-	{
-		{ 0x636363FF, 0x636363FF, 0x636363FF, 0x707070FF, 0x7C7C7CFF, 0x707070FF, 0x707070FF, 0x636363FF },
-		{ 0x636363FF, 0x707070FF, 0x8C8C8CFF, 0x7C7C7CFF, 0x707070FF, 0x7C7C7CFF, 0x8C8C8CFF, 0x707070FF },
-		{ 0x707070FF, 0x707070FF, 0x7C7C7CFF, 0x8C8C8CFF, 0x7C7C7CFF, 0x8C8C8CFF, 0x707070FF, 0x636363FF },
-		{ 0x8C8C8CFF, 0x7C7C7CFF, 0x8C8C8CFF, 0x9C9C9CFF, 0x8C8C8CFF, 0x9C9C9CFF, 0x7C7C7CFF, 0x636363FF },
-		{ 0x707070FF, 0x8C8C8CFF, 0x7C7C7CFF, 0x9C9C9CFF, 0x9C9C9CFF, 0x8C8C8CFF, 0x7C7C7CFF, 0x707070FF },
-		{ 0x636363FF, 0x7C7C7CFF, 0x9C9C9CFF, 0x8C8C8CFF, 0x7C7C7CFF, 0x7C7C7CFF, 0x8C8C8CFF, 0x707070FF },
-		{ 0x636363FF, 0x707070FF, 0x8C8C8CFF, 0x7C7C7CFF, 0x8C8C8CFF, 0x707070FF, 0x7C7C7CFF, 0x636363FF },
-		{ 0x707070FF, 0x636363FF, 0x707070FF, 0x636363FF, 0x707070FF, 0x707070FF, 0x636363FF, 0x636363FF }
-	},
-	{
-		{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF },
-		{ 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF },
-		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-		{ 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
-		{ 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF },
-		{ 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF }
-	}
-});
-
 int main() {
+	std::vector<std::vector<bool>> world;
+
+	std::mt19937 rng = std::mt19937(std::random_device()());
+	std::bernoulli_distribution dist;
+
 	auto terminal = xieite::streams::StandardHandle(stdin, stdout);
 
 	terminal.setInputEcho(false);
@@ -61,10 +29,11 @@ int main() {
 
 	terminal.clearScreen();
 
-	std::vector<std::vector<xieite::streams::Color<4>>> previousFrame;
+	// std::vector<std::vector<xieite::streams::Color<4>>> previousFrame;
+	std::vector<std::vector<bool>> previousFrame;
 
-	std::size_t offsetX = 0;
-	std::size_t offsetY = 0;
+	// std::size_t offsetX = 0;
+	// std::size_t offsetY = 0;
 
 	bool running = true;
 	for (std::size_t tick = 0; running; ++tick) {
@@ -72,27 +41,44 @@ int main() {
 		const std::size_t frameHeight = static_cast<std::size_t>(size.row) * 2;
 		const std::size_t frameWidth = static_cast<std::size_t>(size.column);
 
-		std::vector<std::vector<xieite::streams::Color<4>>> currentFrame;
-		currentFrame.resize(frameHeight);
-		for (auto& row : currentFrame) {
+		// std::vector<std::vector<xieite::streams::Color<4>>> currentFrame;
+		// currentFrame.resize(frameHeight);
+		// for (auto& row : currentFrame) {
+		// 	row.resize(frameWidth);
+		// }
+
+		const std::size_t worldHeight = world.size();
+		world.resize(frameHeight);
+		for (auto& row : world) {
+			const std::size_t worldWidth = row.size();
 			row.resize(frameWidth);
+			for (std::size_t j = worldWidth; j < frameWidth; ++j) {
+				row[j] = dist(rng);
+			}
 		}
 
-		const auto drawTexture = [frameHeight, frameWidth, &currentFrame](const Texture& texture, const std::size_t offsetX, const std::size_t offsetY) {
-			for (std::size_t y1 = 0; y1 < textureHeight; ++y1) {
-				for (std::size_t x1 = 0; x1 < textureWidth; ++x1) {
-					const std::size_t y2 = offsetY + y1;
-					const std::size_t x2 = offsetX + x1;
-					if ((y2 >= frameHeight) || (x2 >= frameWidth) || !texture[y1][x1][3]) {
-						continue;
+		std::vector<std::vector<bool>> currentFrame = world;
+		for (std::size_t i = 0; i < frameHeight; ++i) {
+			const std::size_t u = (i + frameHeight - 1) % frameHeight;
+			const std::size_t d = (i + 1) % frameHeight;
+			for (std::size_t j = 0; j < frameWidth; ++j) {
+				const std::size_t l = (j + frameWidth - 1) % frameWidth;
+				const std::size_t r = (j + 1) % frameWidth;
+				const std::size_t n = world[u][l] + world[u][j] + world[u][r] + world[i][l] + world[i][r] + world[d][l] + world[d][j] + world[d][r];
+				if (world[i][j]) {
+					if (n < 2) {
+						currentFrame[i][j] = false;
+					} else if ((n == 2) || (n == 3)) {
+						currentFrame[i][j] = true;
+					} else if (n > 3) {
+						currentFrame[i][j] = false;
 					}
-					currentFrame[y2][x2] = texture[y1][x1];
+				} else if (n == 3) {
+					currentFrame[i][j] = true;
 				}
 			}
-		};
-
-		drawTexture(textures[0], offsetX, offsetY);
-		drawTexture(textures[1], offsetX, offsetY);
+		}
+		world = currentFrame;
 
 		if (currentFrame != previousFrame) {
 			previousFrame.resize(frameHeight);
@@ -107,16 +93,20 @@ int main() {
 					}
 					display = display
 						+ terminal.stringSetCursorPosition(xieite::streams::Position(static_cast<int>(y / 2), static_cast<int>(x)))
-						+ terminal.stringSetForegroundColor(currentFrame[y][x])
-						+ terminal.stringSetBackgroundColor(currentFrame[y + 1][x])
+						+ terminal.stringSetForegroundColor(xieite::streams::Color<3>(currentFrame[y][x] * 0xFF, currentFrame[y][x] * 0xFF, currentFrame[y][x] * 0xFF))
+						+ terminal.stringSetBackgroundColor(xieite::streams::Color<3>(currentFrame[y + 1][x] * 0xFF, currentFrame[y + 1][x] * 0xFF, currentFrame[y + 1][x] * 0xFF))
 						+ "▀"
 						+ terminal.stringResetStyles();
 				}
 			}
 			previousFrame = currentFrame;
 			std::print(terminal.outputFile, "{}", display);
-			std::fflush(terminal.outputFile);
+			// std::fflush(terminal.outputFile);
 		}
+
+		terminal.setCursorPosition(xieite::streams::Position(0, 0));
+		std::println(terminal.outputFile, "{}", tick);
+		std::fflush(terminal.outputFile);
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -126,22 +116,22 @@ int main() {
 		case 'q':
 			running = false;
 			break;
-		case 'D':
-		case 'd':
-			++offsetX;
-			break;
-		case 'A':
-		case 'a':
-			--offsetX;
-			break;
-		case 'W':
-		case 'w':
-			--offsetY;
-			break;
-		case 'S':
-		case 's':
-			++offsetY;
-			break;
+		// case 'D':
+		// case 'd':
+		// 	++offsetX;
+		// 	break;
+		// case 'A':
+		// case 'a':
+		// 	--offsetX;
+		// 	break;
+		// case 'W':
+		// case 'w':
+		// 	--offsetY;
+		// 	break;
+		// case 'S':
+		// case 's':
+		// 	++offsetY;
+		// 	break;
 		}
 	}
 }
