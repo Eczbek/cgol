@@ -21,9 +21,9 @@ int main() {
 	xieite::term terminal;
 	terminal.echo(false);
 	terminal.signal(false);
-	terminal.cursor_alt(true);
-	terminal.screen_alt(true);
 	terminal.cursor_invis(true);
+	terminal.screen_alt(true);
+	terminal.cursor_alt(true);
 	terminal.clear_screen();
 
 	std::vector<std::vector<xieite::color3>> previousFrame;
