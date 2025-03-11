@@ -66,6 +66,8 @@ int main() {
 		}
 
 		if (currentFrame != previousFrame) {
+			const bool skip = currentFrame.size() != previousFrame.size() || (currentFrame.size() && previousFrame.size() && currentFrame[0].size() != previousFrame[0].size());
+
 			previousFrame.resize(frameHeight);
 			for (auto& row : previousFrame) {
 				row.resize(frameWidth);
@@ -74,7 +76,7 @@ int main() {
 			xieite::vec2<int> cursor;
 			for (std::size_t y = 0; y < frameHeight; y += 2) {
 				for (std::size_t x = 0; x < frameWidth; ++x) {
-					if ((currentFrame[y][x] == previousFrame[y][x]) && (currentFrame[y + 1][x] == previousFrame[y + 1][x])) {
+					if (!skip && (currentFrame[y][x] == previousFrame[y][x]) && (currentFrame[y + 1][x] == previousFrame[y + 1][x])) {
 						continue;
 					}
 					display += terminal.set_cursor_code(xieite::vec2<int>(static_cast<int>(x), static_cast<int>(y / 2)));
