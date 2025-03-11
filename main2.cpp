@@ -6,9 +6,11 @@
 #include <thread>
 #include <vector>
 
-#include "../xieite/include/xieite/streams/color.hpp"
-#include "../xieite/include/xieite/streams/position.hpp"
-#include "../xieite/include/xieite/streams/standard_handle.hpp"
+#include <xieite/io/term.hpp>
+#include <xieite/math/color3.hpp>
+#include <xieite/math/vec2.hpp>
+
+using namespace std::literals;
 
 int main() {
 	std::vector<std::vector<bool>> world;
@@ -16,21 +18,21 @@ int main() {
 	std::mt19937 rng = std::mt19937(std::random_device()());
 	std::bernoulli_distribution dist;
 
-	auto terminal = xieite::streams::StandardHandle(stdin, stdout);
-	terminal.setInputEcho(false);
-	terminal.setInputSignals(false);
-	terminal.setScreenAlternate(true);
-	terminal.setCursorAlternate(true);
-	terminal.setCursorInvisible(true);
-	terminal.clearScreen();
+	xieite::term terminal;
+	terminal.echo(false);
+	terminal.signal(false);
+	terminal.cursor_alt(true);
+	terminal.screen_alt(true);
+	terminal.cursor_invis(true);
+	terminal.clear_screen();
 
-	std::vector<std::vector<xieite::streams::Color<3>>> previousFrame;
+	std::vector<std::vector<xieite::color3>> previousFrame;
 
 	bool running = true;
 	for (std::size_t tick = 0; running; ++tick) {
-		const xieite::streams::Position size = terminal.getScreenSize();
-		const std::size_t frameHeight = static_cast<std::size_t>(size.row) * 2;
-		const std::size_t frameWidth = static_cast<std::size_t>(size.column);
+		const xieite::vec2<int> size = terminal.screen_size();
+		const std::size_t frameWidth = static_cast<std::size_t>(size.x);
+		const std::size_t frameHeight = static_cast<std::size_t>(size.y) * 2;
 
 		const std::size_t worldHeight = world.size();
 		world.resize(frameHeight);
@@ -42,7 +44,7 @@ int main() {
 			}
 		}
 
-		std::vector<std::vector<xieite::streams::Color<3>>> currentFrame;
+		std::vector<std::vector<xieite::color3>> currentFrame;
 		currentFrame.resize(frameHeight);
 		for (auto& row : currentFrame) {
 			row.resize(frameWidth);
@@ -54,7 +56,7 @@ int main() {
 				const std::size_t l = (j + frameWidth - 1) % frameWidth;
 				const std::size_t r = (j + 1) % frameWidth;
 				const std::size_t n = world[u][l] + world[u][j] + world[u][r] + world[i][l] + world[i][r] + world[d][l] + world[d][j] + world[d][r];
-				currentFrame[i][j] = xieite::streams::Color<3>(0xFFFFFF * (n > 1) * (n < 4) * (world[i][j] || (n == 3)));
+				currentFrame[i][j] = xieite::color3(0xFFFFFF * (n > 1) * (n < 4) * (world[i][j] || (n == 3)));
 			}
 		}
 		for (std::size_t i = 0; i < frameHeight; ++i) {
@@ -69,32 +71,34 @@ int main() {
 				row.resize(frameWidth);
 			}
 			std::string display;
-			xieite::streams::Position cursor;
+			xieite::vec2<int> cursor;
 			for (std::size_t y = 0; y < frameHeight; y += 2) {
 				for (std::size_t x = 0; x < frameWidth; ++x) {
 					if ((currentFrame[y][x] == previousFrame[y][x]) && (currentFrame[y + 1][x] == previousFrame[y + 1][x])) {
 						continue;
 					}
-					display += terminal.stringSetCursorPosition(xieite::streams::Position(static_cast<int>(y / 2), static_cast<int>(x)));
-					display += terminal.stringSetForegroundColor(currentFrame[y][x]);
-					display += terminal.stringSetBackgroundColor(currentFrame[y + 1][x]);
+					display += terminal.set_cursor_code(xieite::vec2<int>(static_cast<int>(x), static_cast<int>(y / 2)));
+					display += terminal.fg_code(currentFrame[y][x]);
+					display += terminal.bg_code(currentFrame[y + 1][x]);
 					display += "▀";
-					display += terminal.stringResetStyles();
+					display += terminal.reset_style_code();
 				}
 			}
 			previousFrame = currentFrame;
-			std::print(terminal.outputFile, "{}", display);
-			std::fflush(terminal.outputFile);
+			std::print(terminal.out, "{}", display);
+			std::fflush(terminal.out);
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// std::this_thread::sleep_for(100ms);
 
-		const std::string input = terminal.readString();
-		switch (input[input.size() - 1]) {
-		case 'Q':
-		case 'q':
-			running = false;
-			break;
+		const std::string input = terminal.read_str();
+		if (input.size()) {
+			switch (input[input.size() - 1]) {
+			case 'Q':
+			case 'q':
+				running = false;
+				break;
+			}
 		}
 	}
 }
