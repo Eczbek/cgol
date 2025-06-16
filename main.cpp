@@ -6,9 +6,9 @@
 #include <thread>
 #include <vector>
 
+#include <xieite/io/pos.hpp>
 #include <xieite/io/term.hpp>
 #include <xieite/math/color3.hpp>
-#include <xieite/math/vec2.hpp>
 
 using namespace std::literals;
 
@@ -20,21 +20,22 @@ int main() {
 
 	xieite::term terminal;
 	terminal.echo(false);
+	terminal.canon(false);
 	terminal.signal(false);
-	terminal.cursor_invis(true);
-	terminal.screen_alt(true);
+	terminal.proc(false);
 	terminal.cursor_alt(true);
+	terminal.screen_alt(true);
+	terminal.cursor_invis(true);
 	terminal.clear_screen();
 
 	std::vector<std::vector<xieite::color3>> previousFrame;
 
 	bool running = true;
-	for (std::size_t tick = 0; running; ++tick) {
-		const xieite::vec2<int> size = terminal.screen_size();
-		const std::size_t frameWidth = static_cast<std::size_t>(size.x);
-		const std::size_t frameHeight = static_cast<std::size_t>(size.y) * 2;
+	while (running) {
+		const xieite::pos size = terminal.screen_size();
+		const std::size_t frameWidth = static_cast<std::size_t>(size.col);
+		const std::size_t frameHeight = static_cast<std::size_t>(size.row) * 2;
 
-		const std::size_t worldHeight = world.size();
 		world.resize(frameHeight);
 		for (auto& row : world) {
 			const std::size_t worldWidth = row.size();
@@ -55,8 +56,8 @@ int main() {
 			for (std::size_t j = 0; j < frameWidth; ++j) {
 				const std::size_t l = (j + frameWidth - 1) % frameWidth;
 				const std::size_t r = (j + 1) % frameWidth;
-				const std::size_t n = world[u][l] + world[u][j] + world[u][r] + world[i][l] + world[i][r] + world[d][l] + world[d][j] + world[d][r];
-				currentFrame[i][j] = xieite::color3(0xFFFFFF * (n > 1) * (n < 4) * (world[i][j] || (n == 3)));
+				const int n = world[u][l] + world[u][j] + world[u][r] + world[i][l] + world[i][r] + world[d][l] + world[d][j] + world[d][r];
+				currentFrame[i][j] = ((n > 1) && (n < 4) && (world[i][j] || (n == 3))) ? 0xFFFFFF : 0x000000;
 			}
 		}
 		for (std::size_t i = 0; i < frameHeight; ++i) {
@@ -66,20 +67,19 @@ int main() {
 		}
 
 		if (currentFrame != previousFrame) {
-			const bool skip = currentFrame.size() != previousFrame.size() || (currentFrame.size() && previousFrame.size() && currentFrame[0].size() != previousFrame[0].size());
+			const bool skip = (currentFrame.size() == previousFrame.size()) && (!currentFrame.size() || !previousFrame.size() || (currentFrame[0].size() == previousFrame[0].size()));
 
 			previousFrame.resize(frameHeight);
 			for (auto& row : previousFrame) {
 				row.resize(frameWidth);
 			}
 			std::string display;
-			xieite::vec2<int> cursor;
 			for (std::size_t y = 0; y < frameHeight; y += 2) {
 				for (std::size_t x = 0; x < frameWidth; ++x) {
-					if (!skip && (currentFrame[y][x] == previousFrame[y][x]) && (currentFrame[y + 1][x] == previousFrame[y + 1][x])) {
+					if (skip && (currentFrame[y][x] == previousFrame[y][x]) && (currentFrame[y + 1][x] == previousFrame[y + 1][x])) {
 						continue;
 					}
-					display += terminal.set_cursor_code(xieite::vec2<int>(static_cast<int>(x), static_cast<int>(y / 2)));
+					display += terminal.set_cursor_code(static_cast<xieite::ssize_t>(y / 2), static_cast<xieite::ssize_t>(x));
 					display += terminal.fg_code(currentFrame[y][x]);
 					display += terminal.bg_code(currentFrame[y + 1][x]);
 					display += "▀";

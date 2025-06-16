@@ -1,8 +1,8 @@
-```bash
-git clone https://github.com/Eczbek/graphics-test
-cd graphics-test
+```sh
+git clone https://github.com/Eczbek/cgol
+cd cgol
 cmake -B build -S . -G Ninja
 cmake --build build
-./build/gt
+./build/cgol
 ```
 Press Q to quit
